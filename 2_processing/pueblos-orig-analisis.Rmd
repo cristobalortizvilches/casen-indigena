@@ -1,0 +1,501 @@
+---
+title: "Gráficos Pueblos Originarios"
+author: "Cristóbal Ortiz - Asistente Línea 4 COES"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r include=FALSE}
+
+remove(list = ls())
+
+library(sjmisc)
+library(tidyverse)
+library(sjlabelled)
+
+load("../1_input/procesada/casen.RData")
+```
+
+```{r include=FALSE}
+casen[casen == 99] <- NA
+casen[casen == 77] <- NA
+casen$r5[casen$r5 == 9] <- NA
+
+casen <- casen %>% 
+  mutate(sexo = factor(sexo, labels = c("Hombre", "Mujer")),
+         educ = factor(car::recode(e6a, "c(1)=1; c(2,3,4)=2; c(5)=3; c(6,7)=4; c(8,9,10,11)=5;
+                                   c(12,13)=6; c(14,15)=7; c(16,17)=8"),
+                       labels = c("No asistió","Pre-ecolar", "Diferencial", "Primaria", "Secundaria", 
+                                  "Técnica", "Profesional", "Posgrado")),
+         educm = factor(car::recode(r12a, "c(1)=1; c(2,3)=2; c(5,6,7)=3; c(8)=4;c(9)=5;c(10)=6"),
+                       labels = c("No asistió", "Primaria", "Secundaria", "Técnica", "Profesional", "Posgrado")),
+         educp = factor(car::recode(r12b, "c(1)=1; c(2,3)=2; c(5,6,7)=3; c(8)=4;c(9)=5;c(10)=6"),
+                       labels = c("No asistió", "Primaria", "Secundaria", "Técnica", "Profesional", "Posgrado")),
+         orig = as_label(r3),
+         orig2 = ifelse(r3 == 10, "No indígena", "Indígena"),
+         leng = as_label(r5),
+         trab = factor(o12, labels = c("Permanente", "Estacional", "Ocasional", "A prueba", "Por plazo", "NS/NR")),
+         regi = as_label(region))
+
+casen$leng <- na.tools::na.replace(casen$leng, "No habla\nni entiende")
+
+casen_orig <- casen %>% 
+  filter(orig2 == "Indígena")
+```
+
+
+# Distribución de la población indígena 
+
+## Porcentaje de personas pertenecientes o descendientes de un pueblo indígena en comparación a aquellos que no
+```{r echo=FALSE}
+casen %>% 
+  count(orig2) %>% 
+  drop_na() %>% 
+  mutate(freq = (n/sum(n))) %>% 
+  ggplot(aes(x = orig2, y = freq, fill = orig2,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'dodge2') + 
+  geom_text(position = position_dodge(width  = .9),
+            size = 2.5,
+            vjust = -0.5) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank())
+```
+
+
+## Porcentaje de personas pertenecientes o descendientes de un pueblo indígena en comparación a aquellos que no según región
+```{r echo=FALSE}
+casen %>% 
+  filter(region %in% c(15, 13, 9)) %>% 
+  as_label(region) %>%
+  count(orig2, region) %>%
+  drop_na() %>% 
+  group_by(region) %>% 
+  mutate(freq = (n/sum(n))) %>% 
+  ggplot(aes(x = region, y = freq, fill = orig2,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'dodge2') + 
+  geom_text(position = position_dodge(width  = .9),
+            size = 2.5,
+            vjust = -0.5) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank())
+```
+
+## Porcentaje de étnias indígenas de pertenencia o descedencia
+```{r echo=FALSE}
+casen_orig %>% 
+  count(orig) %>% 
+  drop_na() %>% 
+  mutate(freq = (n/sum(n))) %>% 
+  ggplot(aes(x = orig, y = freq, fill = orig,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'dodge2') + 
+  geom_text(position = position_dodge(width  = .9),
+            size = 2.5,
+            hjust = -0.3) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank()) +
+  coord_flip()
+```
+
+## Porcentaje de étnias indígenas de pertenencia o descendencia según región
+```{r echo=FALSE}
+casen_orig %>% 
+  filter(region %in% c(15, 13, 9)) %>% 
+  as_label(region) %>%
+  count(orig, region) %>%
+  drop_na() %>% 
+  group_by(region) %>% 
+  mutate(freq = (n/sum(n))) %>% 
+  ggplot(aes(x = orig, y = freq, fill = orig,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'dodge2') + 
+  geom_text(size = 2.5,
+            vjust = -0.5) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  facet_wrap(.~region)
+```
+
+## Porcentaje de étnias indígenas de pertenencia o descendencia según región (macrozona norte)
+```{r echo=FALSE}
+casen_orig %>% 
+  filter(region %in% c( 15, 1, 2, 3)) %>% 
+  as_label(region) %>%
+  count(orig, region) %>%
+  drop_na() %>% 
+  group_by(region) %>% 
+  mutate(freq = (n/sum(n))) %>% 
+  ggplot(aes(x = orig, y = freq, fill = orig,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'dodge2') + 
+  geom_text(size = 2.5,
+            vjust = -0.3) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  facet_wrap(.~region) 
+```
+
+## Porcentaje de étnias indígenas de pertenencia o descendencia según región (macrozona centro)
+```{r echo=FALSE}
+casen_orig %>% 
+  filter(region %in% c(4 ,5 ,13)) %>% 
+  as_label(region) %>%
+  count(orig, region) %>%
+  drop_na() %>% 
+  group_by(region) %>% 
+  mutate(freq = (n/sum(n))) %>% 
+  ggplot(aes(x = orig, y = freq, fill = orig,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'dodge2') + 
+  geom_text(size = 2.5,
+            vjust = -0.3) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  facet_wrap(.~region) 
+```
+## Porcentaje de étnias indígenas de pertenencia o descendencia según región (macrozona centro sur)
+```{r echo=FALSE}
+casen_orig %>% 
+  filter(region %in% c(6,7,16,8)) %>% 
+  as_label(region) %>%
+  count(orig, region) %>%
+  drop_na() %>% 
+  group_by(region) %>% 
+  mutate(freq = (n/sum(n))) %>% 
+  ggplot(aes(x = orig, y = freq, fill = orig,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'dodge2') + 
+  geom_text(size = 2.5,
+            vjust = -0.3) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  facet_wrap(.~region) 
+```
+
+## Porcentaje de étnias indígenas de pertenencia o descendencia según región (macrozona sur)
+```{r echo=FALSE}
+casen_orig %>% 
+  filter(region %in% c(9,14,10)) %>% 
+  as_label(region) %>%
+  count(orig, region) %>%
+  drop_na() %>% 
+  group_by(region) %>% 
+  mutate(freq = (n/sum(n))) %>% 
+  ggplot(aes(x = orig, y = freq, fill = orig,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'dodge2') + 
+  geom_text(size = 2.5,
+            vjust = -0.3) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  facet_wrap(.~region) 
+```
+
+## Porcentaje de étnias indígenas de pertenencia o descendencia según región (macrozona austral)
+```{r echo=FALSE}
+casen_orig %>% 
+  filter(region %in% c(11,12)) %>% 
+  as_label(region) %>%
+  count(orig, region) %>%
+  drop_na() %>% 
+  group_by(region) %>% 
+  mutate(freq = (n/sum(n))) %>% 
+  ggplot(aes(x = orig, y = freq, fill = orig,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'dodge2') + 
+  geom_text(size = 2.5,
+            vjust = -0.3) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  facet_wrap(.~region) 
+```
+
+## Cantidad de personas pertenecientes a una etnia indígena que hablan o entienden alguna lengua indígena
+```{r echo=FALSE}
+casen_orig %>%
+  count(orig, leng) %>% 
+  group_by(orig) %>% 
+  mutate(freq = n/sum(n)) %>% 
+  ggplot(aes(x = orig,
+             y = freq,
+             fill = leng,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'stack') + 
+  geom_text(aes(label = ifelse(freq > 0.05 , scales::percent(freq, accuracy = .1),"")),
+            position = position_stack(vjust = .5),
+            size = 2.5) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank()) +
+  coord_flip()
+```
+
+# Nivel educacional de la población indígena
+
+## Nivel educacional según pertenencia o no pertenencia a etnia indígena
+```{r echo=FALSE}
+casen %>% 
+  filter(!educ == "Diferencial") %>% 
+  count(educ, orig2) %>% 
+  drop_na() %>% 
+  group_by(orig2) %>% 
+  mutate(freq = n/sum(n)) %>% 
+  ggplot(aes(x = orig2,
+             y = freq,
+             fill = educ,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'stack') + 
+  geom_text(position = position_stack(vjust = .5),
+            size = 3) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank()) 
+```
+
+## Nivel educacional según pertenencia o no pertenencia a etnia indígena y sexo
+```{r echo=FALSE}
+casen %>% 
+  filter(!educ == "Diferencial") %>% 
+  count(educ, orig2, sexo) %>% 
+  drop_na() %>% 
+  group_by(orig2, sexo) %>% 
+  mutate(freq = n/sum(n)) %>% 
+  ggplot(aes(x = sexo,
+             y = freq,
+             fill = educ,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'stack') + 
+  geom_text(position = position_stack(vjust = .5),
+            size = 3) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank()) +
+   facet_wrap(.~orig2)
+```
+
+## Nivel educacional según etnia a la que pertenence
+```{r echo=FALSE}
+casen_orig %>%
+  filter(!educ == "Diferencial") %>%
+  count(orig, educ) %>% 
+  drop_na() %>% 
+  group_by(orig) %>% 
+  mutate(freq = n/sum(n)) %>% 
+  ggplot(aes(x = orig,
+             y = freq,
+             fill = educ,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'stack') + 
+  geom_text(position = position_stack(vjust = .5),
+            size = 2.5) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank()) +
+  coord_flip()
+```
+
+## Nivel educacional de la madre según etnia a la que pertenence 
+```{r echo=FALSE}
+casen_orig %>% 
+  filter(!educ == "Diferencial") %>%
+  count(orig, educm) %>% 
+  drop_na() %>% 
+  group_by(orig) %>% 
+  mutate(freq = n/sum(n)) %>% 
+  ggplot(aes(x = orig,
+             y = freq,
+             fill = educm,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'stack') + 
+  geom_text(position = position_stack(vjust = .5),
+            size = 2.5) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank()) +
+  coord_flip()
+```
+
+## Nivel educacional del padre según etnia a la que pertenence 
+```{r echo=FALSE}
+casen_orig %>% 
+  filter(!educ == "Diferencial") %>%
+  count(orig, educp) %>% 
+  drop_na() %>% 
+  group_by(orig) %>% 
+  mutate(freq = n/sum(n)) %>% 
+  ggplot(aes(x = orig,
+             y = freq,
+             fill = educp,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'stack') + 
+  geom_text(position = position_stack(vjust = .5),
+            size = 2.5) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank()) +
+  coord_flip()
+```
+
+# Tipo de trabajo de la población indígena
+
+## Tipo de trabajo según pertenencia o no pertenencia a etnia indígena
+```{r echo=FALSE}
+casen %>% 
+  filter(!trab == "NS/NR") %>% 
+  count(trab, orig2) %>% 
+  drop_na() %>% 
+  group_by(orig2) %>% 
+  mutate(freq = n/sum(n)) %>% 
+  ggplot(aes(x = orig2,
+             y = freq,
+             fill = trab,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'stack') + 
+  geom_text(aes(label = ifelse(freq > 0.04 , scales::percent(freq, accuracy = .1),"")),
+            position = position_stack(vjust = .5),
+            size = 3) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank()) 
+```
+
+## Tipo de trabajo según pertenencia o no pertenencia a etnia indígena y sexo
+```{r echo=FALSE}
+casen %>% 
+  filter(!trab == "NS/NR") %>% 
+  count(trab, orig2, sexo) %>% 
+  drop_na() %>%  
+  group_by(orig2, sexo) %>% 
+  mutate(freq = n/sum(n)) %>% 
+  ggplot(aes(x = sexo,
+             y = freq,
+             fill = trab,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'stack') + 
+  geom_text(aes(label = ifelse(freq > 0.03 , scales::percent(freq, accuracy = .1),"")),
+            position = position_stack(vjust = .5),
+            size = 3) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank()) +
+   facet_wrap(.~orig2)
+```
+
+## Tipo de trabajo según etnia indígena a la que pertence
+```{r echo=FALSE}
+casen_orig %>% 
+  filter(!trab == "NS/NR") %>% 
+  count(orig, trab) %>% 
+  drop_na() %>% 
+  group_by(orig) %>% 
+  mutate(freq = n/sum(n)) %>% 
+  ggplot(aes(x = orig,
+             y = freq,
+             fill = trab,
+             label = as.character(scales::percent(freq, accuracy = .1)))) +
+  geom_col(position = 'stack') + 
+  geom_text(aes(label = ifelse(freq > 0.05 , scales::percent(freq, accuracy = .1),"")),
+            position = position_stack(vjust = .5),
+            size = 2.5) +
+  labs(title = "",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
+  theme(legend.position = 'top',
+        legend.title = element_blank()) +
+  coord_flip()
+```
+
