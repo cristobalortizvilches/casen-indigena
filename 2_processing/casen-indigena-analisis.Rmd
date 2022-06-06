@@ -2,9 +2,31 @@
 title: "Gráficos Pueblos Originarios"
 author: "Cristóbal Ortiz - Asistente Línea 4 COES"
 output:
-  html_document: default
-  pdf_document: default
+  pdf_document:
+    toc: yes
+  html_document: 
+    keep_md: yes
+    toc: yes
+    theme: paper
+    highlight: pygments
+    toc_float:
+      collapsed: yes
+    code_folding: show
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	fig.align = "center",
+	fig.height = 5,
+	fig.topcaption = TRUE,
+	fig.width = 8,
+	message = FALSE,
+	warning = FALSE,
+	cache = FALSE
+)
+Sys.setlocale("LC_ALL","ES_ES.UTF-8")
+```
 
 ```{r include=FALSE}
 
@@ -45,7 +67,7 @@ casen_orig <- casen %>%
 ```
 
 
-# Distribución de la población indígena 
+# I. Distribución de la población indígena 
 
 ## Porcentaje de personas pertenecientes o descendientes de un pueblo indígena en comparación a aquellos que no
 ```{r echo=FALSE}
@@ -59,17 +81,15 @@ casen %>%
   geom_text(position = position_dodge(width  = .9),
             size = 2.5,
             vjust = -0.5) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
-  theme(legend.position = 'top',
+  theme(legend.position = 'none',
         legend.title = element_blank())
 ```
 
 
-## Porcentaje de personas pertenecientes o descendientes de un pueblo indígena en comparación a aquellos que no según región
+## Porcentaje de personas pertenecientes o descendientes de un pueblo indígena en comparación a aquellos que no según región (3 principales)
 ```{r echo=FALSE}
 casen %>% 
   filter(region %in% c(15, 13, 9)) %>% 
@@ -84,16 +104,14 @@ casen %>%
   geom_text(position = position_dodge(width  = .9),
             size = 2.5,
             vjust = -0.5) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "", x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
         legend.title = element_blank())
 ```
 
-## Porcentaje de étnias indígenas de pertenencia o descedencia
+## Porcentaje de étnias indígenas a la que pertenence o desciende
 ```{r echo=FALSE}
 casen_orig %>% 
   count(orig) %>% 
@@ -105,12 +123,10 @@ casen_orig %>%
   geom_text(position = position_dodge(width  = .9),
             size = 2.5,
             hjust = -0.3) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
-  theme(legend.position = 'top',
+  theme(legend.position = 'none',
         legend.title = element_blank()) +
   coord_flip()
 ```
@@ -129,9 +145,7 @@ casen_orig %>%
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
             vjust = -0.5) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -155,9 +169,7 @@ casen_orig %>%
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
             vjust = -0.3) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -181,9 +193,7 @@ casen_orig %>%
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
             vjust = -0.3) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -209,8 +219,7 @@ casen_orig %>%
   labs(title = "",
        x = "",
        y = "") +
-  scale_y_continuous(labels = scales::percent,
-                     limits = c(0, 1)) +
+  labs(title = "",  x = "", y = "") +
   theme(legend.position = 'top',
         legend.title = element_blank(),
         axis.text.x = element_blank(),
@@ -232,9 +241,7 @@ casen_orig %>%
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
             vjust = -0.3) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -258,9 +265,7 @@ casen_orig %>%
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
             vjust = -0.3) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -284,9 +289,7 @@ casen_orig %>%
   geom_text(aes(label = ifelse(freq > 0.05 , scales::percent(freq, accuracy = .1),"")),
             position = position_stack(vjust = .5),
             size = 2.5) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -294,7 +297,7 @@ casen_orig %>%
   coord_flip()
 ```
 
-# Nivel educacional de la población indígena
+# II. Nivel educacional de la población indígena
 
 ## Nivel educacional según pertenencia o no pertenencia a etnia indígena
 ```{r echo=FALSE}
@@ -311,9 +314,7 @@ casen %>%
   geom_col(position = 'stack') + 
   geom_text(position = position_stack(vjust = .5),
             size = 3) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -335,9 +336,7 @@ casen %>%
   geom_col(position = 'stack') + 
   geom_text(position = position_stack(vjust = .5),
             size = 3) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -360,9 +359,7 @@ casen_orig %>%
   geom_col(position = 'stack') + 
   geom_text(position = position_stack(vjust = .5),
             size = 2.5) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -385,9 +382,7 @@ casen_orig %>%
   geom_col(position = 'stack') + 
   geom_text(position = position_stack(vjust = .5),
             size = 2.5) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -410,9 +405,7 @@ casen_orig %>%
   geom_col(position = 'stack') + 
   geom_text(position = position_stack(vjust = .5),
             size = 2.5) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -420,7 +413,7 @@ casen_orig %>%
   coord_flip()
 ```
 
-# Tipo de trabajo de la población indígena
+# III. Tipo de trabajo de la población indígena
 
 ## Tipo de trabajo según pertenencia o no pertenencia a etnia indígena
 ```{r echo=FALSE}
@@ -438,9 +431,7 @@ casen %>%
   geom_text(aes(label = ifelse(freq > 0.04 , scales::percent(freq, accuracy = .1),"")),
             position = position_stack(vjust = .5),
             size = 3) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -463,9 +454,7 @@ casen %>%
   geom_text(aes(label = ifelse(freq > 0.03 , scales::percent(freq, accuracy = .1),"")),
             position = position_stack(vjust = .5),
             size = 3) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
@@ -489,9 +478,7 @@ casen_orig %>%
   geom_text(aes(label = ifelse(freq > 0.05 , scales::percent(freq, accuracy = .1),"")),
             position = position_stack(vjust = .5),
             size = 2.5) +
-  labs(title = "",
-       x = "",
-       y = "") +
+  labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
   theme(legend.position = 'top',
