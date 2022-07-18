@@ -30,7 +30,7 @@ knitr::opts_chunk$set(
 Sys.setlocale("LC_ALL","ES_ES.UTF-8")
 ```
 
-```{r include=FALSE}
+```{r set-library, include=FALSE}
 
 remove(list = ls())
 
@@ -38,11 +38,12 @@ library(sjmisc)
 library(tidyverse)
 library(sjlabelled)
 library(casen)
+library(survey)
 
 load("../1_input/procesada/casen.RData")
 ```
 
-```{r include=FALSE}
+```{r recode, include=FALSE}
 casen[casen == 99] <- NA
 casen[casen == 77] <- NA
 casen$r5[casen$r5 == 9] <- NA
@@ -61,7 +62,8 @@ casen <- casen %>%
          orig2 = ifelse(r3 == 10, "No indígena", "Indígena"),
          leng = as_label(r5),
          trab = factor(o12, labels = c("Permanente", "Estacional", "Ocasional", "A prueba", "Por plazo", "NS/NR")),
-         regi = as_label(region))
+         regi = as_label(region)) %>% 
+  drop_na(expr)
 
 casen$leng <- na.tools::na.replace(casen$leng, "No habla\nni entiende")
 
@@ -69,17 +71,22 @@ casen_orig <- casen %>%
   filter(orig2 == "Indígena")
 ```
 
+```{r disenno-complejo}
+casen_diseno <- svydesign(ids = ~varunit, strata = ~varstrat, weights = ~expr, nets = TRUE, data = casen)
+
+casen_diseno2 <- svydesign(ids = ~varunit, strata = ~varstrat, weights = ~expr, nets = TRUE, data = casen_orig)
+```
 
 # I. Distribución de la población indígena 
 
 ## Porcentaje de personas pertenecientes o descendientes de un pueblo indígena en comparación a aquellos que no
-```{r echo=FALSE}
-casen %>% 
-  count(orig2) %>% 
-  drop_na() %>% 
-  mutate(freq = (n/sum(n))) %>% 
-  ggplot(aes(x = orig2, y = freq, fill = orig2,
-             label = as.character(scales::percent(freq, accuracy = .1)))) +
+
+```{r pob-total}
+datos_1_1 <- data.frame(prop.table(svytable(~orig2, casen_diseno, round = F)))
+
+datos_1_1 %>% 
+  ggplot(aes(x = orig2, y = Freq, fill = orig2,
+             label = as.character(scales::percent(Freq, accuracy = .1)))) +
   geom_col(position = 'dodge2') + 
   geom_text(position = position_dodge(width  = .9),
             size = 2.5,
@@ -91,22 +98,19 @@ casen %>%
         legend.title = element_blank())
 ```
 
-```{r}
-cd <- configuracion_disenio(casen, variable = "pobreza", agrupacion = "region", peso = "expr", conglomerado = "varunit", estrato = "varstrat")
-```
-
-
 ## Porcentaje de personas pertenecientes o descendientes de un pueblo indígena en comparación a aquellos que no según región (3 principales)
-```{r echo=FALSE}
-casen %>% 
-  filter(region %in% c(15, 13, 9)) %>% 
-  as_label(region) %>%
-  count(orig2, region) %>%
-  drop_na() %>% 
-  group_by(region) %>% 
-  mutate(freq = (n/sum(n))) %>% 
-  ggplot(aes(x = region, y = freq, fill = orig2,
-             label = as.character(scales::percent(freq, accuracy = .1)))) +
+```{r pob-region, echo=FALSE}
+
+datos_1_2 <- data.frame(prop.table(svytable(~orig2 + regi, casen_diseno, round = F))) %>% 
+  group_by(regi) %>% 
+  mutate(Freq = Freq/sum(Freq)) %>% 
+  filter(regi %in% c("Región de Arica y Parinacota",
+                     "Región de La Araucanía", 
+                     "Región Metropolitana de Santiago"))
+
+datos_1_2 %>% 
+  ggplot(aes(x = regi, y = Freq, fill = orig2,
+             label = as.character(scales::percent(Freq, accuracy = .1)))) +
   geom_col(position = 'dodge2') + 
   geom_text(position = position_dodge(width  = .9),
             size = 2.5,
@@ -119,13 +123,14 @@ casen %>%
 ```
 
 ## Porcentaje de étnias indígenas a la que pertenence o desciende
-```{r echo=FALSE}
-casen_orig %>% 
-  count(orig) %>% 
-  drop_na() %>% 
-  mutate(freq = (n/sum(n))) %>% 
-  ggplot(aes(x = orig, y = freq, fill = orig,
-             label = as.character(scales::percent(freq, accuracy = .1)))) +
+```{r pob-etnia, echo=FALSE}
+
+datos_1_3 <- data.frame(prop.table(svytable(~orig, casen_diseno2, round = F))) %>% 
+  slice(-c(10,11))
+
+datos_1_3 %>% 
+  ggplot(aes(x = orig, y = Freq, fill = orig,
+             label = as.character(scales::percent(Freq, accuracy = .1)))) +
   geom_col(position = 'dodge2') + 
   geom_text(position = position_dodge(width  = .9),
             size = 2.5,
@@ -139,16 +144,20 @@ casen_orig %>%
 ```
 
 ## Porcentaje de étnias indígenas de pertenencia o descendencia según región
-```{r echo=FALSE}
-casen_orig %>% 
-  filter(region %in% c(15, 13, 9)) %>% 
-  as_label(region) %>%
-  count(orig, region) %>%
-  drop_na() %>% 
-  group_by(region) %>% 
-  mutate(freq = (n/sum(n))) %>% 
-  ggplot(aes(x = orig, y = freq, fill = orig,
-             label = as.character(scales::percent(freq, accuracy = .1)))) +
+```{r etnia-region1, echo=FALSE}
+
+datos_1_4 <- data.frame(prop.table(svytable(~orig + regi, casen_diseno2, round = F))) %>% 
+  group_by(regi) %>% 
+  mutate(Freq = Freq/sum(Freq)) %>% 
+  filter(regi %in% c("Región de Arica y Parinacota",
+                     "Región de La Araucanía", 
+                     "Región Metropolitana de Santiago"),
+         !orig %in% c("No pertenece a ningún pueblo indígena",
+                      "No sabe/no responde"))
+
+datos_1_4 %>% 
+  ggplot(aes(x = orig, y = Freq, fill = orig,
+             label = as.character(scales::percent(Freq, accuracy = .1)))) +
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
             vjust = -0.5) +
@@ -159,23 +168,28 @@ casen_orig %>%
         legend.title = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank()) +
-  facet_wrap(.~region)
+  facet_wrap(.~regi)
 ```
 
 ## Porcentaje de étnias indígenas de pertenencia o descendencia según región (macrozona norte)
-```{r echo=FALSE}
-casen_orig %>% 
-  filter(region %in% c( 15, 1, 2, 3)) %>% 
-  as_label(region) %>%
-  count(orig, region) %>%
-  drop_na() %>% 
-  group_by(region) %>% 
-  mutate(freq = (n/sum(n))) %>% 
-  ggplot(aes(x = orig, y = freq, fill = orig,
-             label = as.character(scales::percent(freq, accuracy = .1)))) +
+```{r etnia-region2, echo=FALSE}
+
+datos_1_5 <- data.frame(prop.table(svytable(~orig + regi, casen_diseno2, round = F))) %>% 
+  group_by(regi) %>% 
+  mutate(Freq = Freq/sum(Freq)) %>% 
+  filter(regi %in% c("Región de Arica y Parinacota",
+                     "Región de Tarapacá", 
+                     "Región de Antofagasta",
+                     "Región de Atacama"),
+         !orig %in% c("No pertenece a ningún pueblo indígena",
+                      "No sabe/no responde"))
+
+datos_1_5 %>% 
+  ggplot(aes(x = orig, y = Freq, fill = orig,
+             label = as.character(scales::percent(Freq, accuracy = .1)))) +
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
-            vjust = -0.3) +
+            vjust = -0.5) +
   labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
@@ -183,23 +197,26 @@ casen_orig %>%
         legend.title = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank()) +
-  facet_wrap(.~region) 
+  facet_wrap(.~regi)
 ```
 
 ## Porcentaje de étnias indígenas de pertenencia o descendencia según región (macrozona centro)
-```{r echo=FALSE}
-casen_orig %>% 
-  filter(region %in% c(4 ,5 ,13)) %>% 
-  as_label(region) %>%
-  count(orig, region) %>%
-  drop_na() %>% 
-  group_by(region) %>% 
-  mutate(freq = (n/sum(n))) %>% 
-  ggplot(aes(x = orig, y = freq, fill = orig,
-             label = as.character(scales::percent(freq, accuracy = .1)))) +
+```{r etnia-region3, echo=FALSE}
+datos_1_6 <- data.frame(prop.table(svytable(~orig + regi, casen_diseno2, round = F))) %>% 
+  group_by(regi) %>% 
+  mutate(Freq = Freq/sum(Freq)) %>% 
+  filter(regi %in% c("Región de Coquimbo",
+                     "Región Metropolitana de Santiago", 
+                     "Región de Valparaíso"),
+         !orig %in% c("No pertenece a ningún pueblo indígena",
+                      "No sabe/no responde"))
+
+datos_1_6 %>% 
+  ggplot(aes(x = orig, y = Freq, fill = orig,
+             label = as.character(scales::percent(Freq, accuracy = .1)))) +
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
-            vjust = -0.3) +
+            vjust = -0.5) +
   labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
@@ -207,48 +224,54 @@ casen_orig %>%
         legend.title = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank()) +
-  facet_wrap(.~region) 
+  facet_wrap(.~regi) 
 ```
 
 ## Porcentaje de étnias indígenas de pertenencia o descendencia según región (macrozona centro sur)
-```{r echo=FALSE}
-casen_orig %>% 
-  filter(region %in% c(6,7,16,8)) %>% 
-  as_label(region) %>%
-  count(orig, region) %>%
-  drop_na() %>% 
-  group_by(region) %>% 
-  mutate(freq = (n/sum(n))) %>% 
-  ggplot(aes(x = orig, y = freq, fill = orig,
-             label = as.character(scales::percent(freq, accuracy = .1)))) +
+```{r etnia-region4, echo=FALSE}
+datos_1_7 <- data.frame(prop.table(svytable(~orig + regi, casen_diseno2, round = F))) %>% 
+  group_by(regi) %>% 
+  mutate(Freq = Freq/sum(Freq)) %>% 
+  filter(regi %in% c("Región del Libertador Gral. Bernardo O’Higgins",
+                     "Región del Maule", 
+                     "Región del Biobío",
+                     "Región de Ñuble"),
+         !orig %in% c("No pertenece a ningún pueblo indígena",
+                      "No sabe/no responde"))
+
+datos_1_7 %>% 
+  ggplot(aes(x = orig, y = Freq, fill = orig,
+             label = as.character(scales::percent(Freq, accuracy = .1)))) +
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
-            vjust = -0.3) +
-  labs(title = "",
-       x = "",
-       y = "") +
+            vjust = -0.5) +
   labs(title = "",  x = "", y = "") +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1)) +
   theme(legend.position = 'top',
         legend.title = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank()) +
-  facet_wrap(.~region) 
+  facet_wrap(.~regi) 
 ```
 
 ## Porcentaje de étnias indígenas de pertenencia o descendencia según región (macrozona sur)
-```{r echo=FALSE}
-casen_orig %>% 
-  filter(region %in% c(9,14,10)) %>% 
-  as_label(region) %>%
-  count(orig, region) %>%
-  drop_na() %>% 
-  group_by(region) %>% 
-  mutate(freq = (n/sum(n))) %>% 
-  ggplot(aes(x = orig, y = freq, fill = orig,
-             label = as.character(scales::percent(freq, accuracy = .1)))) +
+```{r etnia-region5, echo=FALSE}
+datos_1_8 <- data.frame(prop.table(svytable(~orig + regi, casen_diseno2, round = F))) %>% 
+  group_by(regi) %>% 
+  mutate(Freq = Freq/sum(Freq)) %>% 
+  filter(regi %in% c("Región de La Araucanía",
+                     "Región de Los Lagos", 
+                     "Región de Los Ríos"),
+         !orig %in% c("No pertenece a ningún pueblo indígena",
+                      "No sabe/no responde"))
+
+datos_1_8 %>% 
+  ggplot(aes(x = orig, y = Freq, fill = orig,
+             label = as.character(scales::percent(Freq, accuracy = .1)))) +
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
-            vjust = -0.3) +
+            vjust = -0.5) +
   labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
@@ -256,23 +279,25 @@ casen_orig %>%
         legend.title = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank()) +
-  facet_wrap(.~region) 
+  facet_wrap(.~regi)
 ```
 
 ## Porcentaje de étnias indígenas de pertenencia o descendencia según región (macrozona austral)
-```{r echo=FALSE}
-casen_orig %>% 
-  filter(region %in% c(11,12)) %>% 
-  as_label(region) %>%
-  count(orig, region) %>%
-  drop_na() %>% 
-  group_by(region) %>% 
-  mutate(freq = (n/sum(n))) %>% 
-  ggplot(aes(x = orig, y = freq, fill = orig,
-             label = as.character(scales::percent(freq, accuracy = .1)))) +
+```{r etnia-region6, echo=FALSE}
+datos_1_9 <- data.frame(prop.table(svytable(~orig + regi, casen_diseno2, round = F))) %>% 
+  group_by(regi) %>% 
+  mutate(Freq = Freq/sum(Freq)) %>% 
+  filter(regi %in% c("Región de Ayséndel Gral. Carlos Ibáñez del Campo",
+                     "Región de Magallanes y de la Antártica Chilena"),
+         !orig %in% c("No pertenece a ningún pueblo indígena",
+                      "No sabe/no responde"))
+
+datos_1_9 %>% 
+  ggplot(aes(x = orig, y = Freq, fill = orig,
+             label = as.character(scales::percent(Freq, accuracy = .1)))) +
   geom_col(position = 'dodge2') + 
   geom_text(size = 2.5,
-            vjust = -0.3) +
+            vjust = -0.5) +
   labs(title = "",  x = "", y = "") +
   scale_y_continuous(labels = scales::percent,
                      limits = c(0, 1)) +
@@ -280,21 +305,25 @@ casen_orig %>%
         legend.title = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank()) +
-  facet_wrap(.~region) 
+  facet_wrap(.~regi)
 ```
 
 ## Cantidad de personas pertenecientes a una etnia indígena que hablan o entienden alguna lengua indígena
-```{r echo=FALSE}
-casen_orig %>%
-  count(orig, leng) %>% 
+```{r etnia-lengua, echo=FALSE}
+datos_1_10 <- data.frame(prop.table(svytable(~leng + orig, casen_diseno2, round = F))) %>% 
   group_by(orig) %>% 
-  mutate(freq = n/sum(n)) %>% 
+  mutate(Freq = Freq/sum(Freq)) %>% 
+  filter(!orig %in% c("No pertenece a ningún pueblo indígena",
+                      "No sabe/no responde"),
+         !leng %in% c("No sabe/no responde"))
+
+datos_1_10 %>%
   ggplot(aes(x = orig,
-             y = freq,
+             y = Freq,
              fill = leng,
-             label = as.character(scales::percent(freq, accuracy = .1)))) +
+             label = as.character(scales::percent(Freq, accuracy = .1)))) +
   geom_col(position = 'stack') + 
-  geom_text(aes(label = ifelse(freq > 0.05 , scales::percent(freq, accuracy = .1),"")),
+  geom_text(aes(label = ifelse(Freq > 0.05 , scales::percent(Freq, accuracy = .1),"")),
             position = position_stack(vjust = .5),
             size = 2.5) +
   labs(title = "",  x = "", y = "") +
